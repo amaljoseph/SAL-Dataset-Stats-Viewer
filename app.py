@@ -48,6 +48,7 @@ bar_chart2.update_layout(
 
 # Initialize the Dash app with Bootstrap theme
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
+app.title = 'SAL Dataset Stats Viewer'
 server = app.server  # Access the underlying Flask server
 
 # App Layout
@@ -237,4 +238,9 @@ def render_image_section(selected_category, selected_dataset, selected_split, se
     return ''
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=2300)
+    # for debug use port 2301, else 2300
+    debug = True
+    if debug:
+        app.run(debug=debug, host='0.0.0.0', port=2301)
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=2300)
