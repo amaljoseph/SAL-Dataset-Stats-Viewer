@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import pickle
 import pandas as pd
 import dash_bootstrap_components as dbc  # Import Bootstrap Components
-from src.helper_fns import load_pickle, get_image_stats, get_image_id
+from src.helper_fns import load_pickle, get_image_stats, get_image_id, get_dataset_image_counts
 import os
 
 # Define paths for datasets and results
@@ -37,13 +37,22 @@ bar_chart1.update_layout(
 
 # Create the second bar chart
 bar_chart2 = go.Figure(data=[
-    go.Bar(name='Avg ILG', x=datasets, y=avg_ilgs),
-    go.Bar(name='N Line', x=datasets, y=n_lines)
+    go.Bar(name='Avg ILG', x=datasets, y=avg_ilgs, marker=dict(color='rgba(239, 169, 33, 0.8)'))
 ])
 bar_chart2.update_layout(
-    barmode='group', title='Avg ILG & #Lines', title_x=0.5, 
+    barmode='group', title='Avg Interline Gap', title_x=0.5, 
     legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="right",x=1), 
     margin=dict(l=10, r=10, t=100, b=20), 
+)
+
+# Create the second bar chart
+bar_chart3 = go.Figure(data=[
+    go.Bar(name='#Lines', x=datasets, y=n_lines, marker=dict(color='rgba(97, 239, 33, 0.8)'))
+])
+bar_chart3.update_layout(
+    barmode='group', title='Avg No of Lines', title_x=0.5, 
+    legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="right",x=1), 
+    margin=dict(l=10, r=10, t=100, b=20), template='plotly'
 )
 
 # Initialize the Dash app with Bootstrap theme
@@ -64,8 +73,11 @@ app.layout = html.Div([
         # Global Dataset Stats
         html.H3('Stats Across All The Datasets'),
         dbc.Row([
-            dbc.Col(dcc.Graph(figure=bar_chart1), width=6, style={'height': '500px'}),
-            dbc.Col(dcc.Graph(figure=bar_chart2), width=6, style={'height': '500px'})
+            dbc.Col(dcc.Graph(figure=bar_chart1), width=12, style={'height': '500px'}),
+        ]),
+        dbc.Row([
+            dbc.Col(dcc.Graph(figure=bar_chart2), width=6, style={'height': '500px'}),
+            dbc.Col(dcc.Graph(figure=bar_chart3), width=6, style={'height': '500px'}),
         ]),
 
         html.Hr(),
@@ -152,17 +164,20 @@ def update_splits(selected_category, selected_dataset):
 # Callback to display the statistics based on dataset and split
 @app.callback(
     Output('stats-div', 'children'),
-    [Input('dataset-dropdown', 'value'),
-     Input('split-dropdown', 'value')]
+    [Input('category-dropdown', 'value'), 
+    Input('dataset-dropdown', 'value'),
+    Input('split-dropdown', 'value')]
 )
-def display_statistics(selected_dataset, selected_split):
+def display_statistics(selected_category, selected_dataset, selected_split):
     print('inside show stats', selected_dataset, selected_split)
     if selected_dataset and selected_split:
         filtered_data = df[(df['dataset'] == selected_dataset) & (df['split'] == selected_split)]
         if not filtered_data.empty:
+            image_counts = get_dataset_image_counts(IMAGES_ROOT, selected_category, selected_dataset)
             stats = filtered_data.iloc[0]
             return html.Div([
-                html.P(f"Average Height: {stats['avg_height']}"),
+                image_counts, 
+                html.P(f"Average Height: emsp;{stats['avg_height']}"),
                 html.P(f"Average Width: {stats['avg_width']}"),
                 html.P(f"Average ILG: {stats['avg_ilg']}"),
                 html.P(f"Average # Lines: {stats['n_line']}")

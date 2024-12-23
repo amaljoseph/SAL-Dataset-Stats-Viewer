@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import pickle
+from dash import html
+
 
 def load_pickle(path):
     with open(path, 'rb') as f:
@@ -36,3 +38,34 @@ def get_image_stats(ROOT, category, dataset, split, image_id):
     data = load_pickle(path)
     image_stats = extract_image_stats(data)
     return image_stats
+
+def get_dataset_image_counts(ROOT, category, dataset):
+    dataset_path = os.path.join(*[ROOT, category, dataset])
+    image_counts_dict = {}
+    for split in os.listdir(dataset_path):
+        n_images = len([file for file in os.listdir(os.path.join(dataset_path, split)) if file.endswith('.jpg')])
+        image_counts_dict[split] = n_images
+    image_counts_dict['total'] = sum([count for count in image_counts_dict.values()])
+    # image_count_text = f'No of Images in {dataset} collection: '
+    # for key in image_counts_dict.keys():
+    #     image_count_text += f'{key.capitalize()}: {image_counts_dict[key]}'
+        # Format the output text with tab spaces
+    # image_count_text = f"Document Count:\t"
+    # image_count_text += "\t".join(
+    #     f"{key.capitalize()}: {value}" for key, value in image_counts_dict.items()
+    # )
+    # print(image_count_text)
+    # Create a list of spans with styled spacing
+    image_count_spans = []
+    image_count_spans.append(html.Span([
+        "No of Images in ", 
+        html.B(dataset),  # Bold the dataset name
+        " collection:"
+    ], style={'margin-right': '20px'}))
+    for key in image_counts_dict.keys():
+        image_count_spans.append(
+            html.Span(f'{key.capitalize()}: {image_counts_dict[key]}', style={'margin-right': '20px'})
+        )
+
+    return html.P(image_count_spans) 
+    # return image_count_text, image_counts_dict
