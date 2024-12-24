@@ -75,11 +75,12 @@ def script_chart1_data():
     ############################## OPTIMIZATION - STORE AND USE in scriptchart() scriptstats, dataset stats
     data = []
     for category in categories:
-        dataset_list = list(df[df['category'] == category]['dataset'])
+        dataset_list = list(df[df['category'] == category]['dataset'].unique())
         category_count = 0
         for dataset in dataset_list:
             image_counts_dict = get_dataset_image_counts(IMAGES_ROOT, category, dataset)
-            category_count += image_counts_dict['total']
+            category_count = category_count + image_counts_dict['total']
+        
 
         data.append([category, category_count])
     return data
@@ -286,28 +287,6 @@ app.layout = html.Div([
         html.Br(), 
     ])
 ])
-# # Callback to display the statistics based on dataset and split
-# @app.callback(
-#     Output('stats-div', 'children'),
-#     [Input('category-dropdown', 'value'), 
-#     Input('dataset-dropdown', 'value'),
-#     Input('split-dropdown', 'value')]
-# )
-# def display_statistics(selected_category, selected_dataset, selected_split):
-#     print('inside show stats', selected_dataset, selected_split)
-#     if selected_dataset and selected_split:
-#         filtered_data = df[(df['dataset'] == selected_dataset) & (df['split'] == selected_split)]
-#         if not filtered_data.empty:
-#             image_counts = get_dataset_image_counts(IMAGES_ROOT, selected_category, selected_dataset)
-#             stats = filtered_data.iloc[0]
-#             return html.Div([
-#                 image_counts, 
-#                 html.P(f"Average Height: {stats['avg_height']}"),
-#                 html.P(f"Average Width: {stats['avg_width']}"),
-#                 html.P(f"Average ILG: {stats['avg_ilg']}"),
-#                 html.P(f"Average # Lines: {stats['n_line']}")
-#             ])
-#     return "Please select a valid category, dataset, and split to view statistics."
 
 # Callback to display Script-level stats
 @app.callback(
@@ -320,9 +299,8 @@ def display_script_statistics(selected_script):
         n_datasets = filtered_data['dataset'].nunique()
         selected_datasets = list(filtered_data.dataset.unique())
         image_counts_list = [[dataset, get_dataset_image_counts(IMAGES_ROOT, selected_script, dataset)['total']] for dataset in selected_datasets]
-        print(image_counts_list)
         return html.Div([
-            html.P(f"{n_datasets} datasets available. Total {sum(row[1] for row in image_counts_list)} images."),
+            html.P(f"{n_datasets} datasets available. Total {sum([row[1] for row in image_counts_list])} images."),
             html.Ul([html.Li(f'{row[0]} - {row[1]} images') for row in image_counts_list]),
         ])
     return "Please select a valid script/ category."
@@ -454,7 +432,7 @@ def render_image_section(selected_category, selected_dataset, selected_split, se
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the Flask app")
-    parser.add_argument('--debug', action='store_false', help="Run the app in debug mode")
+    parser.add_argument('--debug', action='store_true', help="Run the app in debug mode")
     return parser.parse_args()
 
 if __name__ == '__main__':
