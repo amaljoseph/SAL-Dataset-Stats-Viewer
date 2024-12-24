@@ -1,10 +1,11 @@
 from dash import Dash, html, dcc, Input, Output
 from flask import request, send_file
 import plotly.graph_objects as go
+import plotly.express as px
 import pickle
 import pandas as pd
 import dash_bootstrap_components as dbc  # Import Bootstrap Components
-from src.helper_fns import load_pickle, get_image_stats, get_image_id, get_dataset_image_counts
+from src.helper_fns import load_pickle, get_image_stats, get_image_id, get_dataset_image_counts, render_image_counts
 import os
 
 # Define paths for datasets and results
@@ -55,6 +56,58 @@ bar_chart3.update_layout(
     margin=dict(l=10, r=10, t=100, b=20), template='plotly'
 )
 
+
+fig = px.scatter(
+    df[df['split'] == 'all_splits'],
+    x="avg_height",
+    y="avg_width",
+    color="category",
+    hover_data=["dataset", "split", "avg_ilg", "n_line"],
+    title="Avg Height vs Avg Width",
+    labels={"avg_height": "Average Height", "avg_width": "Average Width"},
+)
+
+
+# Graph for script distribution
+def script_chart1_data():
+    ############################## OPTIMIZATION - STORE AND USE in scriptchart() scriptstats, dataset stats
+    data = []
+    for category in categories:
+        dataset_list = list(df[df['category'] == category]['dataset'])
+        category_count = 0
+        for dataset in dataset_list:
+            image_counts_dict = get_dataset_image_counts(IMAGES_ROOT, category, dataset)
+            category_count += image_counts_dict['total']
+
+        data.append([category, category_count])
+    return data
+
+script_chart1_data = script_chart1_data()
+script_chart1 = go.Figure(data=[
+    go.Bar(
+        name='Script Count Distribution', 
+        x=[row[0] for row in script_chart1_data], 
+        y=[row[1] for row in script_chart1_data],
+        text=[row[1] for row in script_chart1_data], 
+        textposition='outside'
+    )
+])
+script_chart1.update_layout(
+    barmode='group', title='Total Image Count per Script', title_x=0.5, 
+    legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="right",x=1), 
+    margin=dict(l=10, r=10, t=100, b=0), template='plotly'
+)
+
+
+################
+### SORTING GRAPH
+
+###############
+
+
+
+
+
 # Initialize the Dash app with Bootstrap theme
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 app.title = 'SAL Dataset Stats Viewer'
@@ -70,6 +123,12 @@ app.layout = html.Div([
 
         html.Hr(),
 
+
+        html.Hr(),
+        # dbc.Row([
+        #     dbc.Col(dcc.Graph(id='sorting-graph', figure=create_sorted_figure()), width=12, style={'height': '500px'})
+        # ]), 
+
         # Global Dataset Stats
         html.H3('Stats Across All The Datasets'),
         dbc.Row([
@@ -80,7 +139,29 @@ app.layout = html.Div([
             dbc.Col(dcc.Graph(figure=bar_chart3), width=6, style={'height': '500px'}),
         ]),
 
+        dbc.Row([
+            dbc.Col(dcc.Graph(figure=fig), width=12)
+            
+        ]),
+
         html.Hr(),
+
+        # Script/Category Level Stats
+        html.H3('Script / Category wise Stats'),
+        dbc.Row([
+            dbc.Col(dcc.Graph(figure=script_chart1), width=12, style={'height': '475px'})
+        ]),
+        html.P('Select Script/Category'), 
+        dcc.Dropdown(
+            id='script-dropdown', 
+            options=[{'label': cat, 'value': cat} for cat in categories],
+            value=None,
+            placeholder='Select a script/category',
+            style={'width': '350px'}
+        ),
+        html.Div(id='script-div'), 
+        html.Hr(),
+
 
         # Individual Dataset Stats 
         html.H3('View Dataset Specific Stats'),
@@ -133,9 +214,52 @@ app.layout = html.Div([
         # Placeholder div for the image section
         dbc.Row([
             dbc.Col(html.Div(id='dataset-image-section'), width=12)
-        ])
+        ]),
+
+        html.Br(),
+        html.Br(), 
     ])
 ])
+# # Callback to display the statistics based on dataset and split
+# @app.callback(
+#     Output('stats-div', 'children'),
+#     [Input('category-dropdown', 'value'), 
+#     Input('dataset-dropdown', 'value'),
+#     Input('split-dropdown', 'value')]
+# )
+# def display_statistics(selected_category, selected_dataset, selected_split):
+#     print('inside show stats', selected_dataset, selected_split)
+#     if selected_dataset and selected_split:
+#         filtered_data = df[(df['dataset'] == selected_dataset) & (df['split'] == selected_split)]
+#         if not filtered_data.empty:
+#             image_counts = get_dataset_image_counts(IMAGES_ROOT, selected_category, selected_dataset)
+#             stats = filtered_data.iloc[0]
+#             return html.Div([
+#                 image_counts, 
+#                 html.P(f"Average Height: {stats['avg_height']}"),
+#                 html.P(f"Average Width: {stats['avg_width']}"),
+#                 html.P(f"Average ILG: {stats['avg_ilg']}"),
+#                 html.P(f"Average # Lines: {stats['n_line']}")
+#             ])
+#     return "Please select a valid category, dataset, and split to view statistics."
+
+# Callback to display Script-level stats
+@app.callback(
+    Output('script-div', 'children'), 
+    [Input('script-dropdown', 'value')]
+)
+def display_script_statistics(selected_script):
+    if selected_script:
+        filtered_data = df[df['category'] == selected_script]
+        n_datasets = filtered_data['dataset'].nunique()
+        selected_datasets = list(filtered_data.dataset.unique())
+        image_counts_list = [[dataset, get_dataset_image_counts(IMAGES_ROOT, selected_script, dataset)['total']] for dataset in selected_datasets]
+        print(image_counts_list)
+        return html.Div([
+            html.P(f"{n_datasets} datasets available. Total {sum(row[1] for row in image_counts_list)} images."),
+            html.Ul([html.Li(f'{row[0]} - {row[1]} images') for row in image_counts_list]),
+        ])
+    return "Please select a valid script/ category."
 
 
 # Callback to update datasets based on selected category
@@ -173,11 +297,11 @@ def display_statistics(selected_category, selected_dataset, selected_split):
     if selected_dataset and selected_split:
         filtered_data = df[(df['dataset'] == selected_dataset) & (df['split'] == selected_split)]
         if not filtered_data.empty:
-            image_counts = get_dataset_image_counts(IMAGES_ROOT, selected_category, selected_dataset)
+            image_counts = render_image_counts(IMAGES_ROOT, selected_category, selected_dataset)
             stats = filtered_data.iloc[0]
             return html.Div([
                 image_counts, 
-                html.P(f"Average Height: emsp;{stats['avg_height']}"),
+                html.P(f"Average Height: {stats['avg_height']}"),
                 html.P(f"Average Width: {stats['avg_width']}"),
                 html.P(f"Average ILG: {stats['avg_ilg']}"),
                 html.P(f"Average # Lines: {stats['n_line']}")
@@ -248,7 +372,17 @@ def render_image_section(selected_category, selected_dataset, selected_split, se
             html.Img(
                 src=f'/external_image?category={selected_category}&dataset={selected_dataset}&split={selected_split}&image={selected_image_path}',
                 style={'width': '100%', 'height': '600px', 'object-fit': 'contain', 'border': '1px solid #ccc'}
-            )
+            ),
+            # http://10.4.16.102:2308/arabic/moc/train/0
+            html.Div(
+                dbc.Button(
+                    "Open Image in SAL Viewer", color="secondary", className="me-md-2",
+                    href=f"http://10.4.16.102:2308/{selected_category}/{selected_dataset}/{selected_split}/{int(get_image_id(selected_image))}", 
+                    target="_blank", 
+                style={'margin-top': '20px'}
+                ),
+            ),
+            
         ])
     return ''
 
