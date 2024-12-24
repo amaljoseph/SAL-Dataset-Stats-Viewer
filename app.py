@@ -101,8 +101,116 @@ script_chart1.update_layout(
 
 ################
 ### SORTING GRAPH
+################### WORKING
+# def create_sorted_figure(sort_by='avg_height', ascending=True):
+#     df_all_splits = df[df.split == 'all_splits']
+#     sorted_df = df_all_splits.sort_values(by=sort_by, ascending=ascending)
+#     fig = go.Figure(data=[
+#         go.Bar(name='avg_height', x=sorted_df['dataset'], y=sorted_df['avg_height']),
+#         go.Bar(name='avg_width', x=sorted_df['dataset'], y=sorted_df['avg_width'])
+#     ])
+#     fig.update_layout(
+#         barmode='group',
+#         title='avg_height & Width',
+#         title_x=0.5,
+#         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+#         margin=dict(l=20, r=10, t=100, b=20),
+#         updatemenus=[
+#             dict(
+#                 buttons=[
+#                     dict(label="Sort by Avg Height (Asc)",
+#                          method="update",
+#                          args=[{"x": [df_all_splits.sort_values('avg_height', ascending=True)['dataset']] * 2,
+#                                 "y": [df_all_splits.sort_values('avg_height', ascending=True)['avg_height'],
+#                                       df_all_splits.sort_values('avg_height', ascending=True)['avg_width']]}]),
+#                     dict(label="Sort by Avg Width (Asc)",
+#                          method="update",
+#                          args=[{"x": [df_all_splits.sort_values('avg_width', ascending=True)['dataset']] * 2,
+#                                 "y": [df_all_splits.sort_values('avg_width', ascending=True)['avg_height'],
+#                                       df_all_splits.sort_values('avg_width', ascending=True)['avg_width']]}]),
+#                 ],
+#                 direction="down",
+#                 showactive=True,
+#                 x=0,
+#                 xanchor="left",
+#                 y=1.2,
+#                 yanchor="top"
+#             )
+#         ]
+#     )
+#     return fig
+############### WORKING
 
-###############
+import pandas as pd
+import plotly.graph_objects as go
+
+def create_sorted_figure(sort_by='aspect_ratio', ascending=True):
+    # Filter the DataFrame for 'all_splits'
+    df_all_splits = df[df.split == 'all_splits']
+    
+    # Calculate the aspect ratio
+    df_all_splits['aspect_ratio'] = df_all_splits['avg_height'] / df_all_splits['avg_width']
+    
+    # Sort the DataFrame based on the selected column (aspect_ratio, avg_height, or avg_width)
+    sorted_df = df_all_splits.sort_values(by=sort_by, ascending=ascending)
+    
+    fig = go.Figure(data=[
+        go.Bar(name='avg_height', x=sorted_df['dataset'], y=sorted_df['avg_height']),
+        go.Bar(name='avg_width', x=sorted_df['dataset'], y=sorted_df['avg_width'])
+    ])
+    
+    fig.update_layout(
+        barmode='group',
+        title='avg_height & Width',
+        title_x=0.5,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=10, t=100, b=20),
+        updatemenus=[
+            dict(
+                buttons=[
+                    dict(label="Sort by Aspect Ratio (Asc)",
+                         method="update",
+                         args=[{"x": [df_all_splits.sort_values('aspect_ratio', ascending=True)['dataset']] * 2,
+                                "y": [df_all_splits.sort_values('aspect_ratio', ascending=True)['avg_height'],
+                                      df_all_splits.sort_values('aspect_ratio', ascending=True)['avg_width']]}]),
+                    dict(label="Sort by Aspect Ratio (Dsc)",
+                         method="update",
+                         args=[{"x": [df_all_splits.sort_values('aspect_ratio', ascending=False)['dataset']] * 2,
+                                "y": [df_all_splits.sort_values('aspect_ratio', ascending=False)['avg_height'],
+                                      df_all_splits.sort_values('aspect_ratio', ascending=False)['avg_width']]}]),
+                    dict(label="Sort by Avg Height (Asc)",
+                         method="update",
+                         args=[{"x": [df_all_splits.sort_values('avg_height', ascending=True)['dataset']] * 2,
+                                "y": [df_all_splits.sort_values('avg_height', ascending=True)['avg_height'],
+                                      df_all_splits.sort_values('avg_height', ascending=True)['avg_width']]}]),
+                    dict(label="Sort by Avg Height (Dsc)",
+                         method="update",
+                         args=[{"x": [df_all_splits.sort_values('avg_height', ascending=False)['dataset']] * 2,
+                                "y": [df_all_splits.sort_values('avg_height', ascending=False)['avg_height'],
+                                      df_all_splits.sort_values('avg_height', ascending=False)['avg_width']]}]),
+                    dict(label="Sort by Avg Width (Asc)",
+                         method="update",
+                         args=[{"x": [df_all_splits.sort_values('avg_width', ascending=True)['dataset']] * 2,
+                                "y": [df_all_splits.sort_values('avg_width', ascending=True)['avg_height'],
+                                      df_all_splits.sort_values('avg_width', ascending=True)['avg_width']]}]),
+                    dict(label="Sort by Avg Width (Dsc)",
+                         method="update",
+                         args=[{"x": [df_all_splits.sort_values('avg_width', ascending=False)['dataset']] * 2,
+                                "y": [df_all_splits.sort_values('avg_width', ascending=False)['avg_height'],
+                                      df_all_splits.sort_values('avg_width', ascending=False)['avg_width']]}]),
+                ],
+                direction="down",
+                showactive=True,
+                x=0,
+                xanchor="left",
+                y=1.2,
+                yanchor="top"
+            )
+        ]
+    )
+    
+    return fig
+
 
 
 
@@ -123,17 +231,19 @@ app.layout = html.Div([
 
         html.Hr(),
 
-
-        html.Hr(),
-        # dbc.Row([
-        #     dbc.Col(dcc.Graph(id='sorting-graph', figure=create_sorted_figure()), width=12, style={'height': '500px'})
-        # ]), 
+        # html.Div([
+        #     html.P('')
+        # ]),
+        # html.Hr(),
 
         # Global Dataset Stats
         html.H3('Stats Across All The Datasets'),
         dbc.Row([
-            dbc.Col(dcc.Graph(figure=bar_chart1), width=12, style={'height': '500px'}),
-        ]),
+            dbc.Col(dcc.Graph(id='sorting-graph', figure=create_sorted_figure()), width=12, style={'height': '500px'})
+        ]), 
+        # dbc.Row([
+        #     dbc.Col(dcc.Graph(figure=bar_chart1), width=12, style={'height': '500px'}),
+        # ]),
         dbc.Row([
             dbc.Col(dcc.Graph(figure=bar_chart2), width=6, style={'height': '500px'}),
             dbc.Col(dcc.Graph(figure=bar_chart3), width=6, style={'height': '500px'}),
