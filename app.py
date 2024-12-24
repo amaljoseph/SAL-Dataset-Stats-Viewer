@@ -7,6 +7,8 @@ import pandas as pd
 import dash_bootstrap_components as dbc  # Import Bootstrap Components
 from src.helper_fns import load_pickle, get_image_stats, get_image_id, get_dataset_image_counts, render_image_counts
 import os
+import argparse
+
 
 # Define paths for datasets and results
 IMAGES_ROOT = '/data3/vaibhav.agrawal/SegmentAnyLine/SAL-Datasets/datasets'
@@ -97,52 +99,6 @@ script_chart1.update_layout(
     legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="right",x=1), 
     margin=dict(l=10, r=10, t=100, b=0), template='plotly'
 )
-
-
-################
-### SORTING GRAPH
-################### WORKING
-# def create_sorted_figure(sort_by='avg_height', ascending=True):
-#     df_all_splits = df[df.split == 'all_splits']
-#     sorted_df = df_all_splits.sort_values(by=sort_by, ascending=ascending)
-#     fig = go.Figure(data=[
-#         go.Bar(name='avg_height', x=sorted_df['dataset'], y=sorted_df['avg_height']),
-#         go.Bar(name='avg_width', x=sorted_df['dataset'], y=sorted_df['avg_width'])
-#     ])
-#     fig.update_layout(
-#         barmode='group',
-#         title='avg_height & Width',
-#         title_x=0.5,
-#         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-#         margin=dict(l=20, r=10, t=100, b=20),
-#         updatemenus=[
-#             dict(
-#                 buttons=[
-#                     dict(label="Sort by Avg Height (Asc)",
-#                          method="update",
-#                          args=[{"x": [df_all_splits.sort_values('avg_height', ascending=True)['dataset']] * 2,
-#                                 "y": [df_all_splits.sort_values('avg_height', ascending=True)['avg_height'],
-#                                       df_all_splits.sort_values('avg_height', ascending=True)['avg_width']]}]),
-#                     dict(label="Sort by Avg Width (Asc)",
-#                          method="update",
-#                          args=[{"x": [df_all_splits.sort_values('avg_width', ascending=True)['dataset']] * 2,
-#                                 "y": [df_all_splits.sort_values('avg_width', ascending=True)['avg_height'],
-#                                       df_all_splits.sort_values('avg_width', ascending=True)['avg_width']]}]),
-#                 ],
-#                 direction="down",
-#                 showactive=True,
-#                 x=0,
-#                 xanchor="left",
-#                 y=1.2,
-#                 yanchor="top"
-#             )
-#         ]
-#     )
-#     return fig
-############### WORKING
-
-import pandas as pd
-import plotly.graph_objects as go
 
 def create_sorted_figure(sort_by='aspect_ratio', ascending=True):
     # Filter the DataFrame for 'all_splits'
@@ -496,10 +452,16 @@ def render_image_section(selected_category, selected_dataset, selected_split, se
         ])
     return ''
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run the Flask app")
+    parser.add_argument('--debug', action='store_false', help="Run the app in debug mode")
+    return parser.parse_args()
+
 if __name__ == '__main__':
     # for debug use port 2301, else 2300
-    debug = True
-    if debug:
-        app.run(debug=debug, host='0.0.0.0', port=2301)
+    args = parse_args()
+    print(args.debug)
+    if args.debug:
+        app.run(debug=args.debug, host='0.0.0.0', port=2301)
     else:
-        app.run(debug=debug, host='0.0.0.0', port=2300)
+        app.run(debug=args.debug, host='0.0.0.0', port=2300)
